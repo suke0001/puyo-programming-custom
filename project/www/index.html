@@ -18,10 +18,30 @@
     </script>
 </head>
     <body style="margin:0;">
-        <!-- <div id="stage" style="position:absolute; left: 0; top: 0; overflow: hidden;"></div> -->
-        <div id="stage" style="position:relative; margin: 0 auto; overflow: hidden;background: url(img/puyo_2bg.png)"></div>
-        <!-- <div id="score" style="position:absolute; left: 0; top: 0; overflow: hidden; text-align: right;"></div> -->
-        <div id="score" style="margin: 0 auto; overflow: hidden; text-align: right;"></div>
+<body style="margin:0;">
+        <div id="game-wrapper" style="position: relative; margin: 0 auto; width: fit-content; display: flex;">
+            <div id="stage" style="position:relative; overflow: hidden; background: url(img/puyo_2bg.png)"></div>
+            <div id="next-container" style="
+                position: absolute;
+                left: 100%; /* ステージのすぐ右隣に配置 */
+                top: 0;
+                width: 120px;
+                padding: 15px 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                border-radius: 0 10px 10px 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 20px;
+                box-sizing: border-box;
+            ">
+                <div id="next1-box" class="next-puyo-box" style="width: 60px; height: 120px; position: relative;"></div>
+                <div id="next2-box" class="next-puyo-box" style="width: 60px; height: 120px; position: relative; transform: scale(0.85);"></div>
+            </div>
+        </div>
+        <div id="score-wrapper" style="margin: 0 auto; width: fit-content;">
+            <div id="score" style="overflow: hidden; text-align: right;"></div>
+        </div>
         <div style="display:none">
             <img src="img/puyo_1.png" id="puyo_1">
             <img src="img/puyo_2.png" id="puyo_2">

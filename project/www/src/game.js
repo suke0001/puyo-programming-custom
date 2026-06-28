@@ -64,6 +64,7 @@ function resetGame() {
     }
     
     // 各クラスの状態を初期化し直す
+    Player.nextPuyoQueue = [];
     Stage.initialize();
     Player.initialize();
     Score.initialize();

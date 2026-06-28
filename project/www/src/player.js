@@ -15,7 +15,7 @@ class Player {
     // static rotateAfterLeft;
     // static rotateFromRotation;
 
-    static initialize () {
+static initialize () {
         // キーボードの入力を確認する
         this.keyStatus = {
             right: false,
@@ -23,6 +23,10 @@ class Player {
             up: false,
             down: false
         };
+        
+        // NEXTぷよを管理するキュー（配列）を初期化
+        this.nextPuyoQueue = [];
+
         // ブラウザのキーボードの入力を取得するイベントリスナを登録する
         document.addEventListener('keydown', (e) => {
             // キーボードが押された場合
@@ -132,22 +136,33 @@ class Player {
             }
         }
     }
-    //ぷよ設置確認
+
+    // ぷよ設置確認＆生成
     static createNewPuyo () {
         // ぷよぷよが置けるかどうか、1番上の段の左から3つ目を確認する
         if(Stage.board[0][2]) {
             // 空白でない場合は新しいぷよを置けない
             return false;
         }
-        // 新しいぷよの色を決める
+
         const puyoColors = Math.max(1, Math.min(5, Config.puyoColors));
-        this.centerPuyo = Math.floor(Math.random() * puyoColors) + 1;
-        this.movablePuyo = Math.floor(Math.random() * puyoColors) + 1;
-        // 新しいぷよ画像を作成する
+
+        // キュー（次以降のぷよのストック）が3手先分（計6個）に満たない場合、補充する
+        while (this.nextPuyoQueue.length < 6) {
+            this.nextPuyoQueue.push(Math.floor(Math.random() * puyoColors) + 1);
+        }
+
+        // キューの先頭から「今落ちるぷよ」の2個を取り出す（取り出した分、後ろが自動で詰まる）
+        this.centerPuyo = this.nextPuyoQueue.shift();
+        this.movablePuyo = this.nextPuyoQueue.shift();
+
+        // 【ここから画面描画の準備】
+        // 新しい操作用ぷよ画像を作成する
         this.centerPuyoElement = PuyoImage.getPuyo(this.centerPuyo);
         this.movablePuyoElement = PuyoImage.getPuyo(this.movablePuyo);
         Stage.stageElement.appendChild(this.centerPuyoElement);
         Stage.stageElement.appendChild(this.movablePuyoElement);
+
         // ぷよの初期配置を定める
         this.puyoStatus = {
             x: 2, // 中心ぷよの位置: 左から2列目
@@ -162,6 +177,10 @@ class Player {
         this.groundFrame = 0;
         // ぷよを描画
         this.setPuyoPosition();
+
+        // NEXT1・NEXT2の画像をHTML上に描画（UI反映）
+        this.showNextPuyo(); 
+
         return true;
     }
 
@@ -424,5 +443,46 @@ class Player {
       if (this.keyStatus.up) {
         location.reload()
       }
+    }
+
+    static showNextPuyo () {
+        const next1Box = document.getElementById('next1-box');
+        const next2Box = document.getElementById('next2-box');
+        if (!next1Box || !next2Box) return;
+
+        // 一度古いNEXTの画像をクリアする
+        next1Box.innerHTML = '';
+        next2Box.innerHTML = '';
+
+        // 配列（this.nextPuyoQueue）から次、その次のぷよの情報を参照
+        const n1_center = this.nextPuyoQueue[0];
+        const n1_movable = this.nextPuyoQueue[1];
+        const n2_center = this.nextPuyoQueue[2];
+        const n2_movable = this.nextPuyoQueue[3];
+
+        // 各画像にサイズを強制適用する補助関数
+        const styleNextPuyo = (img, topPx) => {
+            img.style.position = 'absolute';
+            img.style.left = '0px';
+            img.style.top = topPx + 'px';
+            img.style.width = '60px';   // ◀ 画像の幅を32pxに縮小固定
+            img.style.height = '60px';  // ◀ 画像の高さを32pxに縮小固定
+        };
+
+        // --- NEXT1の画像生成と配置 ---
+        const img1_c = PuyoImage.getPuyo(n1_center);
+        const img1_m = PuyoImage.getPuyo(n1_movable);
+        styleNextPuyo(img1_c, 60); // 軸ぷよ（下）
+        styleNextPuyo(img1_m, 0);  // 動くぷよ（上）
+        next1Box.appendChild(img1_c);
+        next1Box.appendChild(img1_m);
+
+        // --- NEXT2の画像生成と配置 ---
+        const img2_c = PuyoImage.getPuyo(n2_center);
+        const img2_m = PuyoImage.getPuyo(n2_movable);
+        styleNextPuyo(img2_c, 60); // 軸ぷよ（下）
+        styleNextPuyo(img2_m, 0);  // 動くぷよ（上）
+        next2Box.appendChild(img2_c);
+        next2Box.appendChild(img2_m);
     }
 }
