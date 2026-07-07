@@ -33,16 +33,16 @@ static initialize () {
             switch(e.keyCode) {
                 case 37: // 左向きキー
                     this.keyStatus.left = true;
-                    e.preventDefault(); return false;
+                    break;
                 case 38: // 上向きキー
                     this.keyStatus.up = true;
-                    e.preventDefault(); return false;
+                    break;
                 case 39: // 右向きキー
                     this.keyStatus.right = true;
-                    e.preventDefault(); return false;
+                    break;
                 case 40: // 下向きキー
                     this.keyStatus.down = true;
-                    e.preventDefault(); return false;
+                    break;
             }
         });
         document.addEventListener('keyup', (e) => {
@@ -50,16 +50,16 @@ static initialize () {
             switch(e.keyCode) {
                 case 37: // 左向きキー
                     this.keyStatus.left = false;
-                    e.preventDefault(); return false;
+                    break;
                 case 38: // 上向きキー
                     this.keyStatus.up = false;
-                    e.preventDefault(); return false;
+                    break;
                 case 39: // 右向きキー
                     this.keyStatus.right = false;
-                    e.preventDefault(); return false;
+                    break;
                 case 40: // 下向きキー
                     this.keyStatus.down = false;
-                    e.preventDefault(); return false;
+                    break;
             }
         });
         // タッチ操作追加
@@ -440,9 +440,6 @@ static initialize () {
     }
 
     static batankyu() {
-      if (this.keyStatus.up) {
-        location.reload()
-      }
     }
 
     static showNextPuyo () {
