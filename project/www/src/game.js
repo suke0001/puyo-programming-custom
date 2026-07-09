@@ -963,6 +963,6 @@ function selectPuzzle(puzzleId) {
     titleSubMode = 'mainMenu';
     
     document.getElementById('puzzle-list-container').style.display = 'none';
-    
+
     resetGame();
 }
