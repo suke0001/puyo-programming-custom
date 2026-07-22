@@ -556,7 +556,7 @@ function selectPauseMenu(index) {
     }
 }
 
-// 💡【修正】ポーズメニューの選択状態（見た目）を更新する関数 - マウス操作対応
+// 💡【修正】ポーズメニューの選択状態（見た目）を更新する関数 - すべてのボタン処理を統一
 function updatePauseMenuDOM() {
     const resumeBtn = document.getElementById('pause-resume-btn');
     const retryBtn = document.getElementById('pause-retry-btn');
@@ -565,47 +565,65 @@ function updatePauseMenuDOM() {
     
     if (!resumeBtn || !retryBtn || !titleBtn) return;
 
-    // まず全てをリセット
-    resumeBtn.style.color = '#888888';
-    retryBtn.style.color = '#888888';
-    if (listBtn) listBtn.style.color = '#888888';
-    titleBtn.style.color = '#888888';
+    // 💡【修正】まず全てのボタンをリセット
+    const buttons = [resumeBtn, retryBtn, titleBtn];
+    if (listBtn) buttons.splice(2, 0, listBtn);
+    
+    buttons.forEach(btn => {
+        btn.style.color = '#888888';
+        btn.style.fontWeight = 'normal';
+    });
 
+    // テキストをリセット
     resumeBtn.innerText = 'ゲームを再開する';
     retryBtn.innerText = 'はじめからやりなおす';
     if (listBtn) listBtn.innerText = '問題一覧に戻る';
     titleBtn.innerText = 'タイトルに戻る';
 
-    // なぞぷよモード時はリスト項目を表示、通常モード時は非表示
+    // 💡【修正】なぞぷよモード時はリスト項目を表示、通常モード時は非表示
     if (listBtn) {
         listBtn.style.display = gameType === 'puzzle' ? 'block' : 'none';
     }
 
-    // 選択中の項目に▶を付ける
+    // 💡【修正】選択中の項目に▶を付ける（正確なインデックスチェック）
     if (selectedPauseMenuIndex === 0) {
         resumeBtn.innerText = '▶ ゲームを再開する';
         resumeBtn.style.color = '#ffffff';
-    } else if (selectedPauseMenuIndex === 1) {
+        resumeBtn.style.fontWeight = 'bold';
+    } 
+    else if (selectedPauseMenuIndex === 1) {
         retryBtn.innerText = '▶ はじめからやりなおす';
         retryBtn.style.color = '#ffffff';
-    } else if (selectedPauseMenuIndex === 2 && gameType === 'puzzle') {
-        if (listBtn) {
+        retryBtn.style.fontWeight = 'bold';
+    } 
+    else if (selectedPauseMenuIndex === 2) {
+        if (gameType === 'puzzle' && listBtn) {
+            // なぞぷよモード時：インデックス2は「問題一覧に戻る」
             listBtn.innerText = '▶ 問題一覧に戻る';
             listBtn.style.color = '#ffffff';
+            listBtn.style.fontWeight = 'bold';
+        } else if (gameType !== 'puzzle') {
+            // 通常モード時：インデックス2は「タイトルに戻る」
+            titleBtn.innerText = '▶ タイトルに戻る';
+            titleBtn.style.color = '#ffffff';
+            titleBtn.style.fontWeight = 'bold';
         }
-    } else if ((selectedPauseMenuIndex === 3 && gameType === 'puzzle') || (selectedPauseMenuIndex === 2 && gameType !== 'puzzle')) {
+    } 
+    else if (selectedPauseMenuIndex === 3 && gameType === 'puzzle') {
+        // なぞぷよモード時のみ存在：インデックス3は「タイトルに戻る」
         titleBtn.innerText = '▶ タイトルに戻る';
         titleBtn.style.color = '#ffffff';
+        titleBtn.style.fontWeight = 'bold';
     }
 }
 
-// 💡【追加】マウスがメニューの上に乗った（ホバーした）ときに選択インデックスを合わせる関数
+// 💡【修正】マウスがメニューの上に乗ったときに選択インデックスを合わせる関数
 function hoverPauseMenu(index) {
     selectedPauseMenuIndex = index;
     updatePauseMenuDOM();
 }
 
-// 💡【追加】ポーズメニューアイテムをクリックするための関数
+// 💡【修正】ポーズメニューアイテムをクリックするための関数
 function clickPauseMenu(index) {
     selectedPauseMenuIndex = index;
     updatePauseMenuDOM();
