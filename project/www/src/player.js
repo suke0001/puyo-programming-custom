@@ -156,7 +156,11 @@ class Player {
         this.setPuyoPosition();
 
         // NEXT1・NEXT2の画像をHTML上に描画（UI反映）
-        this.showNextPuyo(); 
+        this.showNextPuyo();
+         
+        // NEXT 表示を必ず更新（なぞぷよ時）
+        if (gameType === 'puzzle') updatePuzzleNextListDisplay();
+        else this.showNextPuyo();
 
         return true;
     }
