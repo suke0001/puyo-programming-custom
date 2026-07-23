@@ -360,20 +360,23 @@ class Stage {
     
     // 💡 【修正】画面外へのはみ出しガードの数値を最適化
     static showChainEffect(count, x, y) {
+        // 表示する要素を作成
         const effectElement = document.createElement('div');
         effectElement.className = 'chain-text';
         effectElement.innerHTML = `<span>${count}</span>れんさ!`;
 
-        // ステージ幅・高さを使って表示がはみ出さないようにクランプする
+        // ステージのサイズから安全な表示範囲を決める
         const stageWidth = Config.puyoImgWidth * Config.stageCols;
-        const stageHeight = Config.puyoImgHeight * (Config.stageRows - 1); // stage 要素の高さ
+        const stageHeight = Config.puyoImgHeight * (Config.stageRows - 1);
 
-        const minX = 65;               // 左端ガード
-        const maxX = stageWidth - 75;  // 右端ガード
-        const minY = 40;               // 上端ガード
+        // 左右のガードを拡大して視認性を確保
+        const minX = 65;
+        const maxX = Math.max(120, stageWidth - 75);
 
-        // スコア領域などと重ならないように、表示 Y の最大値をステージ高さの少し手前に設定
-        const maxY = stageHeight - 100;
+        // Y の最小値を上げて（下段で表示しても画面外にならないように）、
+        // かつスコア表示等と被らないよう上限も取る
+        const minY = 80;
+        const maxY = Math.max(160, stageHeight - 120);
 
         const posX = Math.max(minX, Math.min(maxX, x));
         const posY = Math.max(minY, Math.min(maxY, y));
@@ -381,7 +384,7 @@ class Stage {
         effectElement.style.left = posX + 'px';
         effectElement.style.top = posY + 'px';
 
-        // ビジュアルを少し強調（大きめのフォント・高い z-index）
+        // 視認性を高める見た目
         effectElement.style.zIndex = '500';
         effectElement.style.fontSize = '36px';
         effectElement.style.fontWeight = '900';
@@ -390,6 +393,7 @@ class Stage {
 
         this.stageElement.appendChild(effectElement);
 
+        // 自動削除（表示時間）
         setTimeout(() => {
             effectElement.remove();
         }, 900);

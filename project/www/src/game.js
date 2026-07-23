@@ -785,14 +785,13 @@ function updatePuzzleNextListDisplay() {
     const container = document.getElementById('puzzle-next-list');
     if (!container || !parentContainer) return;
 
-    // parent 見た目
+    // parent 見た目（透明にして中身だけ目立たせる）
     parentContainer.style.background = 'transparent';
     parentContainer.style.boxShadow = 'none';
     parentContainer.style.borderRadius = '0';
     parentContainer.style.padding = '6px 0';
     parentContainer.style.position = 'relative';
     parentContainer.style.zIndex = '10';
-    // ここでは固定 margin を使わない。後で自動センタリングを行う。
 
     container.innerHTML = '';
 
@@ -801,7 +800,6 @@ function updatePuzzleNextListDisplay() {
     const pairCount = Math.ceil(currentPuzzle.nextQueue.length / 2);
     if (pairCount <= 0) return;
 
-    // 3行を作る： numbersRow, movableRow, centerRow
     const numbersRow = document.createElement('div');
     numbersRow.style.display = 'flex';
     numbersRow.style.flexDirection = 'row-reverse'; // 右から左
@@ -822,7 +820,6 @@ function updatePuzzleNextListDisplay() {
     centerRow.style.gap = '10px';
     centerRow.style.justifyContent = 'center';
 
-    // Build per-pair elements (pos = 0,2,4,...). We'll append so row-reverse shows right-to-left.
     for (let pos = 0; pos < currentPuzzle.nextQueue.length; pos += 2) {
         const remainingPairs = Math.ceil((currentPuzzle.nextQueue.length - pos) / 2);
         const numDiv = document.createElement('div');
@@ -866,7 +863,6 @@ function updatePuzzleNextListDisplay() {
         movableRow.appendChild(m);
         centerRow.appendChild(c);
 
-        // dim if already used
         if (pos < puzzleNextQueueIndex) {
             numDiv.style.opacity = '0.35';
             m.style.opacity = '0.35';
@@ -874,18 +870,23 @@ function updatePuzzleNextListDisplay() {
         }
     }
 
-    // append rows to container
     container.appendChild(numbersRow);
     container.appendChild(movableRow);
     container.appendChild(centerRow);
 
-    // Auto-center: compute wrapper width and center within parent
-    // (allow browser to layout first)
+    // 親コンテナの外側（ステージ）幅に応じてさらに右にずらす（固定値に頼らない）
     requestAnimationFrame(() => {
+        // 中身の幅と親の幅でセンターを計算（従来の配置）
         const wrapperWidth = container.scrollWidth;
-        const parentWidth = parentContainer.clientWidth;
-        const marginLeft = Math.max(0, (parentWidth - wrapperWidth) / 2);
-        container.style.marginLeft = marginLeft + 'px';
+        const parentWidth = parentContainer.clientWidth || 120;
+        const centerMarginLeft = Math.max(0, (parentWidth - wrapperWidth) / 2);
+        container.style.marginLeft = centerMarginLeft + 'px';
+
+        // さらにステージ幅に応じた追加の右オフセットを入れる（親がステージ直右なので、これで盤面との重なりを回避）
+        const stageWidth = Stage.stageElement ? Stage.stageElement.clientWidth : (Config.puyoImgWidth * Config.stageCols);
+        // ステージ幅の割合を使う
+        const extraOffset = Math.max(12, Math.round(stageWidth * 0.12));
+        parentContainer.style.marginLeft = (extraOffset) + 'px';
     });
 }
 
@@ -1444,8 +1445,16 @@ function retryGame() {
 
 // 💡【追加】なぞぷよ問題一覧を表示
 function showPuzzleList() {
+    // overlay の残留スタイルを確実にリセット（上寄せなどが残っていると他画面に影響するため）
     const overlay = document.getElementById('message-overlay');
-    overlay.style.background = "rgba(0,0,0,0.7)";
+    if (overlay) {
+        overlay.style.justifyContent = '';
+        overlay.style.paddingTop = '';
+        overlay.classList.remove('menu-active');
+    }
+
+    // ここから従来の表示処理
+    if (overlay) overlay.style.background = "rgba(0,0,0,0.7)";
     document.getElementById('main-message').innerText = "なぞぷよ";
     document.getElementById('sub-message').innerText = "SELECT PUZZLE & CLICK";
     document.getElementById('menu-container').style.display = "none";
@@ -1498,7 +1507,9 @@ function showPuzzleList() {
     
     puzzleListContainer.style.display = "block";
     titleSubMode = 'puzzleSelect';
-    overlay.classList.add('menu-active');
+
+    // menu-active を付与（クリックを有効にする）
+    if (overlay) overlay.classList.add('menu-active');
 
     // 初期選択をリセットして見た目を反映
     puzzleListSelectedIndex = 0;
