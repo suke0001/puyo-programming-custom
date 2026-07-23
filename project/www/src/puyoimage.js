@@ -26,6 +26,17 @@ class PuyoImage {
     }
 
     static getPuyo(index) {
+        // 安全化：index が有効な数値であることをチェック
+        if (!index || index < 1 || index > this.puyoImages.length || !this.puyoImages[index - 1]) {
+            // 無効な index の場合は、代替のプレースホルダ要素を返す
+            const placeholder = document.createElement('div');
+            placeholder.style.width = Config.puyoImgWidth + 'px';
+            placeholder.style.height = Config.puyoImgHeight + 'px';
+            placeholder.style.borderRadius = '50%';
+            placeholder.style.background = 'rgba(255,255,255,0.03)';
+            placeholder.style.position = 'absolute';
+            return placeholder;
+        }
         const image = this.puyoImages[index - 1].cloneNode(true);
         return image;
     }

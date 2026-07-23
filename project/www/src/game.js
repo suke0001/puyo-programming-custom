@@ -47,6 +47,7 @@ let selectedPuzzleResultMenuIndex = 0; // 💡【追加】パズルクリア/失
 const PUZZLE_RESULT_MENU_COUNT = 3; // 💡【追加】パズルメニュー項目数
 
 document.addEventListener('keydown', (e) => {
+    console.log('GAME keydown', e.keyCode, 'mode=', mode, 'titleSubMode=', titleSubMode);
     // 💡【追加】ポーズ中のキーボード操作
     if (isPaused) {
         if (e.keyCode === 38) { // 上向きキー
@@ -135,10 +136,11 @@ document.addEventListener('keydown', (e) => {
         if (e.keyCode === 38) Player.keyStatus.up = true;
         if (e.keyCode === 40) Player.keyStatus.down = true;
     }
-    // グローバル window フラグも更新（Player.falling が参照する）
-    window.isUpPressed = isUpPressed;
-    window.isDownPressed = isDownPressed;
-    
+    // グローバルフラグ（Player.falling 内のフォールバック参照用）
+    window.isLeftPressed = (e.keyCode === 37) || window.isLeftPressed;
+    window.isRightPressed = (e.keyCode === 39) || window.isRightPressed;
+    window.isUpPressed = (e.keyCode === 38) || window.isUpPressed;
+    window.isDownPressed = (e.keyCode === 40) || window.isDownPressed;
 });
 
 document.addEventListener('keyup', (e) => {
@@ -151,8 +153,10 @@ document.addEventListener('keyup', (e) => {
         if (e.keyCode === 38) Player.keyStatus.up = false;
         if (e.keyCode === 40) Player.keyStatus.down = false;
     }
-    window.isUpPressed = isUpPressed;
-    window.isDownPressed = isDownPressed;
+    if (e.keyCode === 37) window.isLeftPressed = false;
+    if (e.keyCode === 39) window.isRightPressed = false;
+    if (e.keyCode === 38) window.isUpPressed = false;
+    if (e.keyCode === 40) window.isDownPressed = false;
 });
 
 // 💡【追加】タイトル画面でのマウスクリック処理
@@ -748,43 +752,43 @@ function updatePuzzleGoalDisplay() {
 // 💡【追加】なぞぷよのネクスト一覧を更新
 function updatePuzzleNextListDisplay() {
     if (!currentPuzzle) return;
-    const nextListContainer = document.getElementById('puzzle-next-list');
-    if (!nextListContainer) return;
-    nextListContainer.innerHTML = '';
-
-    const pairCount = Math.ceil((currentPuzzle.nextQueue.length - puzzleNextQueueIndex) / 2);
-    if (pairCount <= 0) return;
+    const container = document.getElementById('puzzle-next-list');
+    if (!container) return;
+    container.innerHTML = '';
 
     const IMG_SIZE = Math.max(20, Math.floor(Config.puyoImgWidth * 0.5));
 
-    // コンテナ：横にペア列を並べるが、各列は縦に表示（上:数字, その下: movable, その下:center）
+    // startIndex を現在の手も含めるために少し前にさかのぼる（0 未満にはしない）
+    const startIndex = Math.max(0, puzzleNextQueueIndex - 2);
+
+    // wrapper を横並びにして各列に罫線を入れる
     const wrapper = document.createElement('div');
     wrapper.style.display = 'flex';
     wrapper.style.flexDirection = 'row';
     wrapper.style.gap = '8px';
     wrapper.style.alignItems = 'flex-start';
 
-    for (let i = 0; i < pairCount; i++) {
-        const pairIndex = puzzleNextQueueIndex / 2 + i; // 0-based pair index
-        const queuePos = puzzleNextQueueIndex + i * 2;
-        const centerColor = currentPuzzle.nextQueue[queuePos] || 0;
-        const movableColor = currentPuzzle.nextQueue[queuePos + 1] || 0;
+    for (let pos = startIndex; pos < currentPuzzle.nextQueue.length; pos += 2) {
+        const centerColor = currentPuzzle.nextQueue[pos] || 0;
+        const movableColor = (pos + 1 < currentPuzzle.nextQueue.length) ? currentPuzzle.nextQueue[pos + 1] : 0;
 
         const col = document.createElement('div');
         col.style.display = 'flex';
         col.style.flexDirection = 'column';
         col.style.alignItems = 'center';
-        col.style.padding = '6px 8px';
-        // 罫線（左側）を入れる：最初の列は線なし、以降は薄い線
-        if (i > 0) col.style.borderLeft = '1px solid rgba(255,255,255,0.12)';
+        col.style.padding = '6px 10px';
+        // 罫線（左側）を入れる
+        if (pos !== startIndex) col.style.borderLeft = '1px solid rgba(0,0,0,0.12)';
 
-        // 上段：残り手数（pairCount - i）
-        const num = document.createElement('div');
-        num.style.fontSize = '14px';
-        num.style.color = '#fff';
-        num.style.marginBottom = '6px';
-        num.innerText = String(pairCount - i);
-        col.appendChild(num);
+        // 残り手数（数字）: 残りのペア数を表示
+        const pairIndex = Math.floor(pos / 2);
+        const remainingPairs = Math.ceil((currentPuzzle.nextQueue.length - pos) / 2);
+        const numDiv = document.createElement('div');
+        numDiv.style.fontSize = '13px';
+        numDiv.style.color = '#fff';
+        numDiv.style.marginBottom = '6px';
+        numDiv.innerText = String(remainingPairs);
+        col.appendChild(numDiv);
 
         // movable (上)
         const createSmall = (color) => {
@@ -794,29 +798,34 @@ function updatePuzzleNextListDisplay() {
                 ph.style.height = IMG_SIZE + 'px';
                 ph.style.borderRadius = '50%';
                 ph.style.background = 'rgba(255,255,255,0.03)';
+                ph.style.marginBottom = '4px';
                 return ph;
             }
-            const img = PuyoImage.getPuyo(color).cloneNode(true);
+            const img = PuyoImage.getPuyo(color).cloneNode ? PuyoImage.getPuyo(color).cloneNode(true) : PuyoImage.getPuyo(color);
             img.style.width = IMG_SIZE + 'px';
             img.style.height = IMG_SIZE + 'px';
             img.style.position = 'static';
             img.style.left = '';
             img.style.top = '';
+            img.style.marginBottom = '4px';
             return img;
         };
 
-        const imgMov = createSmall(movableColor);
-        imgMov.style.marginBottom = '4px';
-        col.appendChild(imgMov);
-
-        // center (下)
-        const imgCenter = createSmall(centerColor);
-        col.appendChild(imgCenter);
-
+        col.appendChild(createSmall(movableColor));
+        col.appendChild(createSmall(centerColor));
         wrapper.appendChild(col);
     }
 
-    nextListContainer.appendChild(wrapper);
+    container.appendChild(wrapper);
+
+    // 表示領域（親コンテナ）を右側に寄せる／上の方に見えるように調整
+    const parent = document.getElementById('puzzle-next-list-container');
+    if (parent) {
+        parent.style.background = 'transparent';
+        parent.style.boxShadow = 'none';
+        parent.style.position = 'relative';
+        parent.style.zIndex = 200; // overlayより上にしたいなら値を大きめに
+    }
 }
 
 // 💡【追加】なぞぷよのクリア条件を判定
