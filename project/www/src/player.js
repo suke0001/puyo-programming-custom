@@ -15,126 +15,90 @@ class Player {
     // static rotateAfterLeft;
     // static rotateFromRotation;
 
-static initialize () {
-        // キーボードの入力を確認する
+    static initialize () {
+        // keyStatus を毎回リセット（再初期化して誤動作を防ぐ）
         this.keyStatus = {
             right: false,
             left: false,
             up: false,
             down: false
         };
-        
+
         // NEXTぷよを管理するキュー（配列）を初期化
-        this.nextPuyoQueue = [];
+        if (!Array.isArray(this.nextPuyoQueue)) this.nextPuyoQueue = [];
+
+        // イベントリスナの重複登録を防ぐ
+        if (this._listenersRegistered) {
+            // すでに登録済みなので keyStatus の初期化だけ行って終了
+            return;
+        }
+        this._listenersRegistered = true;
 
         // ブラウザのキーボードの入力を取得するイベントリスナを登録する
         document.addEventListener('keydown', (e) => {
-            // キーボードが押された場合
             switch(e.keyCode) {
-                case 37: // 左向きキー
-                    this.keyStatus.left = true;
-                    break;
-                case 38: // 上向きキー
-                    this.keyStatus.up = true;
-                    break;
-                case 39: // 右向きキー
-                    this.keyStatus.right = true;
-                    break;
-                case 40: // 下向きキー
-                    this.keyStatus.down = true;
-                    break;
+                case 37: this.keyStatus.left = true; break;
+                case 38: this.keyStatus.up = true; break;
+                case 39: this.keyStatus.right = true; break;
+                case 40: this.keyStatus.down = true; break;
             }
+            // game.js 側の isUpPressed / isDownPressed と同期させるため、更新された値を window に出す
+            // （game.js でも window に反映する実装を入れてください）
         });
+
         document.addEventListener('keyup', (e) => {
-            // キーボードが離された場合
             switch(e.keyCode) {
-                case 37: // 左向きキー
-                    this.keyStatus.left = false;
-                    break;
-                case 38: // 上向きキー
-                    this.keyStatus.up = false;
-                    break;
-                case 39: // 右向きキー
-                    this.keyStatus.right = false;
-                    break;
-                case 40: // 下向きキー
-                    this.keyStatus.down = false;
-                    break;
+                case 37: this.keyStatus.left = false; break;
+                case 38: this.keyStatus.up = false; break;
+                case 39: this.keyStatus.right = false; break;
+                case 40: this.keyStatus.down = false; break;
             }
         });
-        // タッチ操作追加
-        this.touchPoint = {
-          xs: 0,
-          ys: 0,
-          xe: 0,
-          ye: 0
-        }
+
+        // タッチ周り（既存コードをそのまま）
+        this.touchPoint = { xs:0, ys:0, xe:0, ye:0 };
         document.addEventListener('touchstart', (e) => {
-            this.touchPoint.xs = e.touches[0].clientX
-            this.touchPoint.ys = e.touches[0].clientY
-        })
+            this.touchPoint.xs = e.touches[0].clientX;
+            this.touchPoint.ys = e.touches[0].clientY;
+        });
         document.addEventListener('touchmove', (e) => {
-            // 指が少し動いた時は無視
             if (Math.abs(e.touches[0].clientX - this.touchPoint.xs) < 20 &&
-                Math.abs(e.touches[0].clientY - this.touchPoint.ys) < 20
-            ) {
-                return
+                Math.abs(e.touches[0].clientY - this.touchPoint.ys) < 20) {
+                return;
             }
-
-            // 指の動きをからジェスチャーによるkeyStatusプロパティを更新
-            this.touchPoint.xe = e.touches[0].clientX
-            this.touchPoint.ye = e.touches[0].clientY
-            const {xs, ys, xe, ye} = this.touchPoint
-            gesture(xs, ys, xe, ye)
-
-
-            this.touchPoint.xs = this.touchPoint.xe
-            this.touchPoint.ys = this.touchPoint.ye
-        })
+            this.touchPoint.xe = e.touches[0].clientX;
+            this.touchPoint.ye = e.touches[0].clientY;
+            const {xs, ys, xe, ye} = this.touchPoint;
+            gesture(xs, ys, xe, ye);
+            this.touchPoint.xs = this.touchPoint.xe;
+            this.touchPoint.ys = this.touchPoint.ye;
+        });
         document.addEventListener('touchend', (e) => {
-            this.keyStatus.up = false
-            this.keyStatus.down = false
-            this.keyStatus.left = false
-            this.keyStatus.right = false
-        })
+            this.clearKeyStatus();
+        });
 
-        // ジェスチャーを判定して、keyStatusプロパティを更新する関数
         const gesture = (xs, ys, xe, ye) => {
             const horizonDirection = xe - xs;
             const verticalDirection = ye - ys;
-
             if (Math.abs(horizonDirection) < Math.abs(verticalDirection)) {
-                // 縦方向
                 if (verticalDirection < 0) {
-                    // up
-                    this.keyStatus.up = true
-                    this.keyStatus.down = false
-                    this.keyStatus.left = false
-                    this.keyStatus.right = false
-                } else if (0 <= verticalDirection) {
-                    // down
-                    this.keyStatus.up = false
-                    this.keyStatus.down = true
-                    this.keyStatus.left = false
-                    this.keyStatus.right = false
+                    this.keyStatus.up = true; this.keyStatus.down = false; this.keyStatus.left = false; this.keyStatus.right = false;
+                } else {
+                    this.keyStatus.up = false; this.keyStatus.down = true; this.keyStatus.left = false; this.keyStatus.right = false;
                 }
             } else {
-                // 横方向
                 if (horizonDirection < 0) {
-                    // left
-                    this.keyStatus.up = false
-                    this.keyStatus.down = false
-                    this.keyStatus.left = true
-                    this.keyStatus.right = false
-                } else if (0 <= horizonDirection) {
-                    // right
-                    this.keyStatus.up = false
-                    this.keyStatus.down = false
-                    this.keyStatus.left = false
-                    this.keyStatus.right = true
+                    this.keyStatus.up = false; this.keyStatus.down = false; this.keyStatus.left = true; this.keyStatus.right = false;
+                } else {
+                    this.keyStatus.up = false; this.keyStatus.down = false; this.keyStatus.left = false; this.keyStatus.right = true;
                 }
             }
-        }
+        };
+    }
+
+    // Clear key status helper
+    static clearKeyStatus() {
+        this.keyStatus = { right: false, left: false, up: false, down: false };
     }
 
     // ぷよ設置確認＆生成
@@ -181,7 +145,7 @@ static initialize () {
             x: 2, // 中心ぷよの位置: 左から2列目
             y: 0, // 画面上部ギリギリから出てくる
             left: 2 * Config.puyoImgWidth,
-            top: Config.puyoImgHeight, // ← 変更: 0 ではなく1セル分下にして画面内表示を保証
+            top: (gameType === 'puzzle') ? (Config.puyoImgHeight * 2) : 0, // 通常モードは top:0 。なぞぷよのみ 2 セル分下げる
             dx: 0, // 動くぷよの相対位置: 動くぷよは上方向にある
             dy: -1, 
             rotation: 90 // 動くぷよの角度は90度（上向き）
@@ -207,11 +171,11 @@ static initialize () {
     }
 
     static falling (isDownPressed) {
+        // combine local param and global window flag (game.js will keep window.isDownPressed in sync)
         const downPressed = Boolean(isDownPressed) || Boolean(window.isDownPressed);
 
-        // 💡【修正】なぞぷよモードの場合、下キーが押されていなければ落下させない
+        // パズル時は下押しがないと落ちない仕様
         if (gameType === 'puzzle' && !downPressed) {
-            // 下キーが押されていないので、接地判定だけを行う
             let x = this.puyoStatus.x;
             let y = this.puyoStatus.y;
             let dx = this.puyoStatus.dx;
@@ -223,7 +187,6 @@ static initialize () {
             }
             
             if(isBlocked && this.groundFrame == 0) {
-                // 初接地である。接地を開始する
                 this.groundFrame = 1;
             } else if(isBlocked) {
                 this.groundFrame++;
@@ -233,9 +196,8 @@ static initialize () {
             
             return this.groundFrame > Config.playerGroundFrame;
         }
-        
-        // 通常モード（またはなぞぷよで下キーが押されている場合）の落下処理
-        // 現状の場所の下にブロックがあるかどうか確認する
+
+        // 通常落下処理
         let isBlocked = false;
         let x = this.puyoStatus.x;
         let y = this.puyoStatus.y;
@@ -245,23 +207,18 @@ static initialize () {
             isBlocked = true;
         }
         if(!isBlocked) {
-            // 下にブロックがないなら自由落下してよい。プレイヤー操作中の自由落下処理をする
             this.puyoStatus.top += Config.playerFallingSpeed;
             if(downPressed) {
-                // 下キーが押されているならもっと加速する
                 this.puyoStatus.top += Config.playerDownSpeed;
             }
-            
-            // 現在の落下蓄積(top)が、現在のマス(y)の底辺を超えたかどうかを判定
+
             if(Math.floor(this.puyoStatus.top / Config.puyoImgHeight) > y) {
-                // ブロックの境を超えたので、再チェックする
                 if(downPressed) {
                     Score.addScore(1);
                 }
                 y += 1;
                 this.puyoStatus.y = y;
-                
-                // 接地・ブロック衝突の再判定
+
                 if(y + 1 >= Config.stageRows || Stage.board[y + 1][x] || (y + dy + 1 >= 0 && (y + dy + 1 >= Config.stageRows || Stage.board[y + dy + 1][x + dx]))) {
                     isBlocked = true;
                 }
@@ -269,19 +226,16 @@ static initialize () {
                     this.groundFrame = 0;
                     return;
                 } else {
-                    // 境を超えたらブロックにぶつかった。位置を調節して、接地を開始する
                     this.puyoStatus.top = y * Config.puyoImgHeight;
                     this.groundFrame = 1;
                     return;
                 }
             } else {
-                // 自由落下で特に問題がなかった。次回も自由落下を続ける
                 this.groundFrame = 0;
                 return;
             }
         }
         if(this.groundFrame == 0) {
-            // 初接地である。接地を開始する
             this.groundFrame = 1;
             return;
         } else {
@@ -291,6 +245,7 @@ static initialize () {
             }
         }
     }
+    
     static playing(frame) {
         // まず自由落下を確認する
         // 下キーが押されていた場合、それ込みで自由落下させる
