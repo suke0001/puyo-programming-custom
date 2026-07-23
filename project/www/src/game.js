@@ -337,6 +337,11 @@ function resetGame() {
         }
     }
 
+    // なぞぷよ専用の色固定モードは初期はオフにしておく（モードに応じて切り替える）
+    if (typeof PuyoImage !== 'undefined' && PuyoImage.enablePuzzleColorMode) {
+        PuyoImage.enablePuzzleColorMode(false);
+    }
+    
     // --- 基盤初期化を先に行う ---
     Stage.initialize();
     Player.initialize();
@@ -371,6 +376,15 @@ function resetGame() {
             puzzleNextQueueIndex = 0;
             puzzleClearConditionMet = false;
             puzzleSolutionMatched = false;
+            
+            // --- なぞぷよ時のみ、色マッピングを固定する設定 ---
+            if (typeof PuyoImage !== 'undefined' && PuyoImage.enablePuzzleColorMode) {
+                // パズルモード専用に色固定を有効化
+                PuyoImage.enablePuzzleColorMode(true);
+
+                // デフォルトのマッピング（puyo_1 → 色1, puyo_2 → 色2, ...）を使う場合
+                PuyoImage.setPuzzleColorOrder([1, 2, 3, 4, 5]);
+            }
         }
 
         const goalCont = document.getElementById('puzzle-goal-container');
