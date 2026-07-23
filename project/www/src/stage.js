@@ -360,35 +360,39 @@ class Stage {
     
     // 💡 【修正】画面外へのはみ出しガードの数値を最適化
     static showChainEffect(count, x, y) {
-        // 表示する要素を作成
         const effectElement = document.createElement('div');
         effectElement.className = 'chain-text';
         effectElement.innerHTML = `<span>${count}</span>れんさ!`;
-        
-        // 💡 【ここを調整】
-        // 文字の横幅（中心から左右に広がる分）を考慮して、ガードの最小値を広げます。
-        // ステージの最大幅を正確に計算し、両端での見切れを100%防ぎます。
+
+        // ステージ幅・高さを使って表示がはみ出さないようにクランプする
         const stageWidth = Config.puyoImgWidth * Config.stageCols;
-        
-        const minX = 65;               // ◀ 左端のガードを40から65pxに強化（「〇」が見切れるのを防ぐ）
-        const maxX = stageWidth - 75;  // ◀ 右端のガードを「ステージ幅 - 75px」に強化（「さ!」が見切れるのを防ぐ）
-        const minY = 40;               // 上端のガードも少しだけ下に調整
-        
-        // 計算した安全な位置に座標を固定する
+        const stageHeight = Config.puyoImgHeight * (Config.stageRows - 1); // stage 要素の高さ
+
+        const minX = 65;               // 左端ガード
+        const maxX = stageWidth - 75;  // 右端ガード
+        const minY = 40;               // 上端ガード
+
+        // スコア領域などと重ならないように、表示 Y の最大値をステージ高さの少し手前に設定
+        const maxY = stageHeight - 100;
+
         const posX = Math.max(minX, Math.min(maxX, x));
-        const posY = Math.max(minY, y);
-        
-        // 計算した位置を設定
+        const posY = Math.max(minY, Math.min(maxY, y));
+
         effectElement.style.left = posX + 'px';
         effectElement.style.top = posY + 'px';
-        
-        // ステージの子要素として画面に追加
+
+        // ビジュアルを少し強調（大きめのフォント・高い z-index）
+        effectElement.style.zIndex = '500';
+        effectElement.style.fontSize = '36px';
+        effectElement.style.fontWeight = '900';
+        effectElement.style.textShadow = '0 4px 12px rgba(0,0,0,0.6)';
+        effectElement.style.pointerEvents = 'none';
+
         this.stageElement.appendChild(effectElement);
-        
-        // アニメーション（0.8秒）が終わったら自動で削除
+
         setTimeout(() => {
             effectElement.remove();
-        }, 800);
+        }, 900);
     }
 
     // 💡【追加】なぞぷよ用：ぷよを画面に表示する関数

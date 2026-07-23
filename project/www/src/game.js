@@ -251,6 +251,11 @@ function initialize() {
 
 function showTitleMenu() {
     const overlay = document.getElementById('message-overlay');
+    if (overlay) {
+        overlay.style.justifyContent = '';
+        overlay.style.paddingTop = '';
+        overlay.classList.remove('menu-active'); // 必要なら一旦外す
+    }
     
     overlay.style.background = "rgba(0,0,0,0.7)";
     document.getElementById('main-message').innerText = "PUYO PUYO";
@@ -376,7 +381,7 @@ function resetGame() {
             puzzleNextQueueIndex = 0;
             puzzleClearConditionMet = false;
             puzzleSolutionMatched = false;
-            
+
             // --- なぞぷよ時のみ、色マッピングを固定する設定 ---
             if (typeof PuyoImage !== 'undefined' && PuyoImage.enablePuzzleColorMode) {
                 // パズルモード専用に色固定を有効化
@@ -910,44 +915,35 @@ function checkPuzzleClearCondition() {
 function updatePuzzleResultMenuDOM() {
     let resultContainer = document.getElementById('puzzle-result-menu-container');
     if (!resultContainer) {
-        // コンテナが存在しない場合は作成する
         const overlay = document.getElementById('message-overlay');
         const container = document.createElement('div');
         container.id = 'puzzle-result-menu-container';
-        container.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(26, 26, 26, 0.95); padding: 40px 30px; border: 4px solid #fff; border-radius: 12px; text-align: center; z-index: 9998;';
-        
+        // 固定サイズにする（横幅・高さを固定）
+        container.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:380px; min-height:180px; background: rgba(26,26,26,0.95); padding: 26px 20px; border: 4px solid #fff; border-radius: 12px; text-align:center; z-index:210;';
         container.innerHTML = `
-            <div id="puzzle-menu-item-0" onclick="clickPuzzleResultMenu(0)" onmouseover="hoverPuzzleResultMenu(0)" style="font-size: 22px; color: #fff; margin: 20px 0; cursor: pointer; font-weight: bold; min-width: 280px; min-height: 28px;">▶ 次の問題に進む</div>
-            <div id="puzzle-menu-item-1" onclick="clickPuzzleResultMenu(1)" onmouseover="hoverPuzzleResultMenu(1)" style="font-size: 22px; color: #888; margin: 20px 0; cursor: pointer; font-weight: bold; min-width: 280px; min-height: 28px;">問題一覧に戻る</div>
-            <div id="puzzle-menu-item-2" onclick="clickPuzzleResultMenu(2)" onmouseover="hoverPuzzleResultMenu(2)" style="font-size: 22px; color: #888; margin: 20px 0; cursor: pointer; font-weight: bold; min-width: 280px; min-height: 28px;">タイトルに戻る</div>
+            <div id="puzzle-menu-item-0" onclick="clickPuzzleResultMenu(0)" onmouseover="hoverPuzzleResultMenu(0)" style="font-size: 22px; color: #fff; margin: 18px 0; cursor: pointer; font-weight: bold;"></div>
+            <div id="puzzle-menu-item-1" onclick="clickPuzzleResultMenu(1)" onmouseover="hoverPuzzleResultMenu(1)" style="font-size: 18px; color: #888; margin: 12px 0; cursor: pointer;"></div>
+            <div id="puzzle-menu-item-2" onclick="clickPuzzleResultMenu(2)" onmouseover="hoverPuzzleResultMenu(2)" style="font-size: 18px; color: #888; margin: 12px 0; cursor: pointer;"></div>
         `;
         overlay.appendChild(container);
         resultContainer = container;
     }
 
-    // メニュー項目の見た目を更新
+    // 内容は成功/失敗で切り替え
     for (let i = 0; i < PUZZLE_RESULT_MENU_COUNT; i++) {
         const item = document.getElementById(`puzzle-menu-item-${i}`);
-        if (item) {
-            if (i === selectedPuzzleResultMenuIndex) {
-                item.style.color = '#ffffff';
-                if (i === 0) {
-                    item.innerText = '▶ 次の問題に進む';
-                } else if (i === 1) {
-                    item.innerText = '▶ 問題一覧に戻る';
-                } else {
-                    item.innerText = '▶ タイトルに戻る';
-                }
-            } else {
-                item.style.color = '#888888';
-                if (i === 0) {
-                    item.innerText = '次の問題に進む';
-                } else if (i === 1) {
-                    item.innerText = '問題一覧に戻る';
-                } else {
-                    item.innerText = 'タイトルに戻る';
-                }
-            }
+        if (!item) continue;
+        const selected = (i === selectedPuzzleResultMenuIndex);
+        item.style.color = selected ? '#ffffff' : '#888888';
+        item.style.fontWeight = selected ? 'bold' : 'normal';
+        if (puzzleResultIsFailed) {
+            if (i === 0) item.innerText = (selected ? '▶ はじめからやりなおす' : 'はじめからやりなおす');
+            if (i === 1) item.innerText = (selected ? '▶ 問題一覧に戻る' : '問題一覧に戻る');
+            if (i === 2) item.innerText = (selected ? '▶ タイトルに戻る' : 'タイトルに戻る');
+        } else {
+            if (i === 0) item.innerText = (selected ? '▶ 次の問題に進む' : '次の問題に進む');
+            if (i === 1) item.innerText = (selected ? '▶ 問題一覧に戻る' : '問題一覧に戻る');
+            if (i === 2) item.innerText = (selected ? '▶ タイトルに戻る' : 'タイトルに戻る');
         }
     }
 }
@@ -967,32 +963,75 @@ function clickPuzzleResultMenu(index) {
 
 // 💡【追加】パズル結果メニューの選択処理
 function selectPuzzleResultMenu(index) {
-    if (index === 0) {
-        // 次の問題に進む
-        const nextPuzzle = PUZZLES.find(p => p.id === currentPuzzleId + 1);
-        if (nextPuzzle) {
-            selectPuzzle(nextPuzzle.id);
-        } else {
-            // 次の問題がない場合は問題一覧に戻る
+    // 結果メニューを消す（DOM と overlay の状態をクリア）
+    const resultContainer = document.getElementById('puzzle-result-menu-container');
+    if (resultContainer) resultContainer.remove();
+
+    const overlay = document.getElementById('message-overlay');
+    if (overlay) {
+        overlay.classList.remove('menu-active');
+        overlay.style.background = "rgba(0,0,0,0)";
+        overlay.style.justifyContent = '';
+        overlay.style.paddingTop = '';
+    }
+    // メイン/サブメッセージもクリア
+    const mainMsg = document.getElementById('main-message');
+    const subMsg = document.getElementById('sub-message');
+    if (mainMsg) mainMsg.innerText = "";
+    if (subMsg) subMsg.innerText = "";
+
+    // なぞぷよ専用 UI は非表示にする（確実に消す）
+    const goalCont = document.getElementById('puzzle-goal-container');
+    const nextListCont = document.getElementById('puzzle-next-list-container');
+    if (goalCont) goalCont.style.display = 'none';
+    if (nextListCont) nextListCont.style.display = 'none';
+
+    // キー状態クリア
+    if (typeof Player !== 'undefined' && Player.clearKeyStatus) Player.clearKeyStatus();
+    isUpPressed = false; isDownPressed = false; isEnterPressed = false;
+    window.isUpPressed = false; window.isDownPressed = false;
+
+    // 振る舞いを失敗/成功で分岐
+    if (puzzleResultIsFailed) {
+        // FAIL: 0=retry,1=list,2=title
+        if (index === 0) {
+            retryGame();
+            return;
+        } else if (index === 1) {
             showPuzzleList();
             mode = 'title';
             titleSubMode = 'puzzleSelect';
+            return;
+        } else {
+            // タイトルへ
+            titleSubMode = 'mainMenu';
+            showTitleMenu();
+            mode = 'title';
+            return;
         }
-    } else if (index === 1) {
-        // 問題一覧に戻る
-        document.getElementById('puzzle-goal-container').style.display = 'none';
-        document.getElementById('puzzle-next-list-container').style.display = 'none';
-        showPuzzleList();
-        mode = 'title';
-        titleSubMode = 'puzzleSelect';
     } else {
-        // タイトルに戻る
-        document.getElementById('puzzle-goal-container').style.display = 'none';
-        document.getElementById('puzzle-next-list-container').style.display = 'none';
-        isTimeUp = false;
-        titleSubMode = 'mainMenu';
-        showTitleMenu();
-        mode = 'title';
+        // CLEAR: 0=next,1=list,2=title
+        if (index === 0) {
+            const nextPuzzle = PUZZLES.find(p => p.id === currentPuzzleId + 1);
+            if (nextPuzzle) {
+                selectPuzzle(nextPuzzle.id);
+            } else {
+                showPuzzleList();
+                mode = 'title';
+                titleSubMode = 'puzzleSelect';
+            }
+            return;
+        } else if (index === 1) {
+            showPuzzleList();
+            mode = 'title';
+            titleSubMode = 'puzzleSelect';
+            return;
+        } else {
+            titleSubMode = 'mainMenu';
+            showTitleMenu();
+            mode = 'title';
+            return;
+        }
     }
 }
 
@@ -1131,12 +1170,18 @@ function loop() {
                     break;
                 }
             } else {
-                if(Stage.puyoCount == 0 && combinationCount > 0) {
-                    Stage.showZenkeshi();
-                    Score.addScore(2100);
-                    if (zenkeshiVoice) {
-                        zenkeshiVoice.currentTime = 0;
-                        zenkeshiVoice.play().catch(e => {});
+                if (Stage.puyoCount == 0 && combinationCount > 0) {
+                    // なぞぷよモード時は全消し演出と加点を無効化する
+                    if (gameType !== 'puzzle') {
+                        Stage.showZenkeshi();
+                        Score.addScore(2100);
+                        if (zenkeshiVoice) {
+                            zenkeshiVoice.currentTime = 0;
+                            zenkeshiVoice.play().catch(e => {});
+                        }
+                    } else {
+                        // puzzle モード時は全消し演出を行わない（表示・得点を抑止）
+                        // （ここで何もしない）
                     }
                 }
                 combinationCount = 0;
@@ -1201,20 +1246,44 @@ function loop() {
 
         case 'puzzleClear':
             {
+                puzzleResultIsFailed = false;
+
                 const overlay = document.getElementById('message-overlay');
-                if (overlay) overlay.style.background = "rgba(0,0,0,0.6)";
-                document.getElementById('main-message').innerText = "CLEAR!";
-                document.getElementById('sub-message').innerText = "SELECT & PUSH ENTER";
+                if (overlay) {
+                    // 上寄せして余白確保（結果メッセージは上部に表示）
+                    overlay.style.background = "rgba(0,0,0,0.6)";
+                    overlay.style.justifyContent = 'flex-start';
+                    overlay.style.paddingTop = '36px';
+                    overlay.classList.add('menu-active');
+                }
+
+                // main-message を大きく目立たせる
+                const mainMsg = document.getElementById('main-message');
+                const subMsg = document.getElementById('sub-message');
+                if (mainMsg) {
+                    mainMsg.innerText = "CLEAR!";
+                    mainMsg.style.fontSize = '56px';
+                    mainMsg.style.fontWeight = '900';
+                    mainMsg.style.textShadow = '0 4px 10px rgba(0,0,0,0.6)';
+                    mainMsg.style.letterSpacing = '2px';
+                    mainMsg.style.marginTop = '8px';
+                    mainMsg.style.marginBottom = '0';
+                }
+                if (subMsg) subMsg.innerText = "";
+
                 isEnterPressed = false;
                 isUpPressed = false;
                 isDownPressed = false;
                 selectedPuzzleResultMenuIndex = 0;
-                updatePuzzleResultMenuDOM();
-                if (overlay) overlay.classList.add('menu-active');
 
+                updatePuzzleResultMenuDOM();
+
+                // 連鎖ボイスと被らないよう少し遅らせてクリア音を鳴らす（600ms）
                 if (typeof clearVoice !== 'undefined' && clearVoice) {
-                    clearVoice.currentTime = 0;
-                    clearVoice.play().catch(e => {});
+                    setTimeout(() => {
+                        clearVoice.currentTime = 0;
+                        clearVoice.play().catch(e => {});
+                    }, 600);
                 }
 
                 mode = 'puzzleClearWait';
@@ -1227,21 +1296,41 @@ function loop() {
 
         case 'puzzleOver':
             {
+                puzzleResultIsFailed = true;
+
                 const overlay = document.getElementById('message-overlay');
-                if (overlay) overlay.style.background = "rgba(0,0,0,0.6)";
-                document.getElementById('main-message').innerText = "MISS";
-                document.getElementById('sub-message').innerText = "SELECT & PUSH ENTER";
+                if (overlay) {
+                    overlay.style.background = "rgba(0,0,0,0.6)";
+                    overlay.style.justifyContent = 'flex-start';
+                    overlay.style.paddingTop = '36px';
+                    overlay.classList.add('menu-active');
+                }
+
+                const mainMsg = document.getElementById('main-message');
+                const subMsg = document.getElementById('sub-message');
+                if (mainMsg) {
+                    mainMsg.innerText = "MISS";
+                    mainMsg.style.fontSize = '56px';
+                    mainMsg.style.fontWeight = '900';
+                    mainMsg.style.textShadow = '0 4px 10px rgba(0,0,0,0.6)';
+                    mainMsg.style.letterSpacing = '2px';
+                    mainMsg.style.marginTop = '8px';
+                    mainMsg.style.marginBottom = '0';
+                }
+                if (subMsg) subMsg.innerText = "";
+
                 isEnterPressed = false;
                 isUpPressed = false;
                 isDownPressed = false;
                 selectedPuzzleResultMenuIndex = 0;
-                updatePuzzleResultMenuDOM();
-                if (overlay) overlay.classList.add('menu-active');
 
-                // 再生: miss.wav（後で audio/miss.wav を追加してください）
+                updatePuzzleResultMenuDOM();
+
                 if (typeof missVoice !== 'undefined' && missVoice) {
-                    missVoice.currentTime = 0;
-                    missVoice.play().catch(e => {});
+                    setTimeout(() => {
+                        missVoice.currentTime = 0;
+                        missVoice.play().catch(e => {});
+                    }, 600);
                 }
 
                 mode = 'puzzleOverWait';
