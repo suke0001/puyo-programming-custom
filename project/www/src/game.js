@@ -47,7 +47,6 @@ let selectedPuzzleResultMenuIndex = 0; // 💡【追加】パズルクリア/失
 const PUZZLE_RESULT_MENU_COUNT = 3; // 💡【追加】パズルメニュー項目数
 
 document.addEventListener('keydown', (e) => {
-    console.log('GAME keydown', e.keyCode, 'mode=', mode, 'titleSubMode=', titleSubMode);
     // 💡【追加】ポーズ中のキーボード操作
     if (isPaused) {
         if (e.keyCode === 38) { // 上向きキー
@@ -235,6 +234,10 @@ function initialize() {
     zenkeshiVoice.preload = 'auto';
     batankyuVoice = new Audio(`audio/batankyu.wav`);
     batankyuVoice.preload = 'auto';
+    clearVoice = new Audio('audio/clear.wav');
+    clearVoice.preload = 'auto';
+    missVoice = new Audio('audio/miss.wav');
+    missVoice.preload = 'auto';
     
     mode = 'title';
     titleSubMode = 'mainMenu'; 
@@ -763,49 +766,57 @@ function updatePuzzleNextListDisplay() {
     const container = document.getElementById('puzzle-next-list');
     if (!container || !parentContainer) return;
 
-    // 見た目：なぞぷよ専用は背景透明（通常NEXTは別枠）
+    // parent 見た目
     parentContainer.style.background = 'transparent';
     parentContainer.style.boxShadow = 'none';
     parentContainer.style.borderRadius = '0';
     parentContainer.style.padding = '6px 0';
     parentContainer.style.position = 'relative';
     parentContainer.style.zIndex = '10';
-    parentContainer.style.marginLeft = '150px'
+    // ここでは固定 margin を使わない。後で自動センタリングを行う。
 
     container.innerHTML = '';
 
     const IMG_SIZE = Math.max(20, Math.floor(Config.puyoImgWidth * 0.5));
 
-    // 全キューを固定表示（消費済みは薄くする）
-    // 表示は列（横）ごとで、各列は縦: [番号][movable][center]
-    const wrapper = document.createElement('div');
-    wrapper.style.display = 'flex';
-    wrapper.style.flexDirection = 'row';
-    wrapper.style.gap = '10px';
-    wrapper.style.alignItems = 'flex-start';
+    const pairCount = Math.ceil(currentPuzzle.nextQueue.length / 2);
+    if (pairCount <= 0) return;
 
+    // 3行を作る： numbersRow, movableRow, centerRow
+    const numbersRow = document.createElement('div');
+    numbersRow.style.display = 'flex';
+    numbersRow.style.flexDirection = 'row-reverse'; // 右から左
+    numbersRow.style.gap = '10px';
+    numbersRow.style.justifyContent = 'center';
+    numbersRow.style.marginBottom = '6px';
+
+    const movableRow = document.createElement('div');
+    movableRow.style.display = 'flex';
+    movableRow.style.flexDirection = 'row-reverse';
+    movableRow.style.gap = '10px';
+    movableRow.style.justifyContent = 'center';
+    movableRow.style.marginBottom = '4px';
+
+    const centerRow = document.createElement('div');
+    centerRow.style.display = 'flex';
+    centerRow.style.flexDirection = 'row-reverse';
+    centerRow.style.gap = '10px';
+    centerRow.style.justifyContent = 'center';
+
+    // Build per-pair elements (pos = 0,2,4,...). We'll append so row-reverse shows right-to-left.
     for (let pos = 0; pos < currentPuzzle.nextQueue.length; pos += 2) {
-        const centerColor = currentPuzzle.nextQueue[pos] || 0;
-        const movableColor = (pos + 1 < currentPuzzle.nextQueue.length) ? currentPuzzle.nextQueue[pos + 1] : 0;
-
-        const col = document.createElement('div');
-        col.style.display = 'flex';
-        col.style.flexDirection = 'column';
-        col.style.alignItems = 'center';
-        col.style.padding = '4px 8px';
-        // 罫線（左）を入れる
-        if (pos > 0) col.style.borderLeft = '1px solid rgba(0,0,0,0.08)';
-
-        // 残りペア数（番号）
         const remainingPairs = Math.ceil((currentPuzzle.nextQueue.length - pos) / 2);
         const numDiv = document.createElement('div');
         numDiv.style.fontSize = '12px';
-        numDiv.style.color = '#666';
-        numDiv.style.marginBottom = '6px';
+        numDiv.style.color = '#999';
+        numDiv.style.width = IMG_SIZE + 'px';
+        numDiv.style.textAlign = 'center';
         numDiv.innerText = String(remainingPairs);
-        col.appendChild(numDiv);
+        numbersRow.appendChild(numDiv);
 
-        // 画像ヘルパー：position を static にして親コンテナのレイアウトに従わせる
+        const movableColor = currentPuzzle.nextQueue[pos + 1] || 0;
+        const centerColor = currentPuzzle.nextQueue[pos] || 0;
+
         const createSmall = (color) => {
             if (!color) {
                 const ph = document.createElement('div');
@@ -813,7 +824,6 @@ function updatePuzzleNextListDisplay() {
                 ph.style.height = IMG_SIZE + 'px';
                 ph.style.borderRadius = '50%';
                 ph.style.background = 'rgba(255,255,255,0.03)';
-                ph.style.marginBottom = '4px';
                 return ph;
             }
             const elem = PuyoImage.getPuyo(color);
@@ -825,27 +835,39 @@ function updatePuzzleNextListDisplay() {
             }
             img.style.width = IMG_SIZE + 'px';
             img.style.height = IMG_SIZE + 'px';
-            img.style.position = 'static'; // ここが重要（盤面への absolute 重なりを防ぐ）
+            img.style.position = 'static';
             img.style.left = '';
             img.style.top = '';
-            img.style.marginBottom = '4px';
             return img;
         };
 
-        const movableEl = createSmall(movableColor);
-        const centerEl = createSmall(centerColor);
+        const m = createSmall(movableColor);
+        const c = createSmall(centerColor);
 
-        // consumption: if this pair is already consumed (pos < puzzleNextQueueIndex) -> dim
+        movableRow.appendChild(m);
+        centerRow.appendChild(c);
+
+        // dim if already used
         if (pos < puzzleNextQueueIndex) {
-            col.style.opacity = '0.35';
+            numDiv.style.opacity = '0.35';
+            m.style.opacity = '0.35';
+            c.style.opacity = '0.35';
         }
-
-        col.appendChild(movableEl);
-        col.appendChild(centerEl);
-        wrapper.appendChild(col);
     }
 
-    container.appendChild(wrapper);
+    // append rows to container
+    container.appendChild(numbersRow);
+    container.appendChild(movableRow);
+    container.appendChild(centerRow);
+
+    // Auto-center: compute wrapper width and center within parent
+    // (allow browser to layout first)
+    requestAnimationFrame(() => {
+        const wrapperWidth = container.scrollWidth;
+        const parentWidth = parentContainer.clientWidth;
+        const marginLeft = Math.max(0, (parentWidth - wrapperWidth) / 2);
+        container.style.marginLeft = marginLeft + 'px';
+    });
 }
 
 // 💡【追加】なぞぷよのクリア条件を判定
@@ -1164,17 +1186,25 @@ function loop() {
             break;
 
         case 'puzzleClear':
-            const overlay = document.getElementById('message-overlay');
-            if (overlay) overlay.style.background = "rgba(0,0,0,0.6)";
-            document.getElementById('main-message').innerText = "CLEAR!";
-            document.getElementById('sub-message').innerText = "SELECT & PUSH ENTER";
-            isEnterPressed = false;
-            isUpPressed = false;
-            isDownPressed = false;
-            selectedPuzzleResultMenuIndex = 0;
-            updatePuzzleResultMenuDOM();
-            if (overlay) overlay.classList.add('menu-active');
-            mode = 'puzzleClearWait';
+            {
+                const overlay = document.getElementById('message-overlay');
+                if (overlay) overlay.style.background = "rgba(0,0,0,0.6)";
+                document.getElementById('main-message').innerText = "CLEAR!";
+                document.getElementById('sub-message').innerText = "SELECT & PUSH ENTER";
+                isEnterPressed = false;
+                isUpPressed = false;
+                isDownPressed = false;
+                selectedPuzzleResultMenuIndex = 0;
+                updatePuzzleResultMenuDOM();
+                if (overlay) overlay.classList.add('menu-active');
+
+                if (typeof clearVoice !== 'undefined' && clearVoice) {
+                    clearVoice.currentTime = 0;
+                    clearVoice.play().catch(e => {});
+                }
+
+                mode = 'puzzleClearWait';
+            }
             break;
 
         case 'puzzleClearWait':
@@ -1182,17 +1212,26 @@ function loop() {
             break;
 
         case 'puzzleOver':
-            // 💡【追加】なぞぷよゲームオーバー画面
-            document.getElementById('message-overlay').style.background = "rgba(0,0,0,0.6)";
-            document.getElementById('main-message').innerText = "MISS";
-            document.getElementById('sub-message').innerText = "SELECT & PUSH ENTER";
-            isEnterPressed = false;
-            isUpPressed = false;
-            isDownPressed = false;
-            selectedPuzzleResultMenuIndex = 0;
-            updatePuzzleResultMenuDOM();
-            if (overlay) overlay.classList.add('menu-active');
-            mode = 'puzzleOverWait';
+            {
+                const overlay = document.getElementById('message-overlay');
+                if (overlay) overlay.style.background = "rgba(0,0,0,0.6)";
+                document.getElementById('main-message').innerText = "MISS";
+                document.getElementById('sub-message').innerText = "SELECT & PUSH ENTER";
+                isEnterPressed = false;
+                isUpPressed = false;
+                isDownPressed = false;
+                selectedPuzzleResultMenuIndex = 0;
+                updatePuzzleResultMenuDOM();
+                if (overlay) overlay.classList.add('menu-active');
+
+                // 再生: miss.wav（後で audio/miss.wav を追加してください）
+                if (typeof missVoice !== 'undefined' && missVoice) {
+                    missVoice.currentTime = 0;
+                    missVoice.play().catch(e => {});
+                }
+
+                mode = 'puzzleOverWait';
+            }
             break;
 
         case 'puzzleOverWait':

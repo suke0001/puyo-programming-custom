@@ -103,7 +103,6 @@ class Player {
 
     // ぷよ設置確認＆生成
     static createNewPuyo () {
-        console.log('createNewPuyo start: gameType=', gameType, 'puzzleNextQueueIndex=', puzzleNextQueueIndex, 'currentPuzzle=', currentPuzzle && currentPuzzle.id);
         // ぷよぷよが置けるかどうか、1番上の段の左から3つ目を確認する
         if(Stage.board[1][2]) {
             // 空白でない場合は新しいぷよを置けない
@@ -252,7 +251,6 @@ class Player {
     }
     
     static playing(frame) {
-        console.log('Player.playing keyStatus=', this.keyStatus, 'puyoStatus=', this.puyoStatus);
         const effectiveKeyStatus = {
             left: (this.keyStatus && this.keyStatus.left) || Boolean(window.isLeftPressed),
             right: (this.keyStatus && this.keyStatus.right) || Boolean(window.isRightPressed),
@@ -457,7 +455,6 @@ class Player {
                 console.log('✅ 正解パターンと一致しました！');
             }
         }
-        console.log('Player.fix done: Stage.puyoCount=', Stage.puyoCount);
     }
 
     static batankyu() {
